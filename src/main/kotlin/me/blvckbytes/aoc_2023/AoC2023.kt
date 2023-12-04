@@ -3,6 +3,7 @@ package me.blvckbytes.aoc_2023
 import me.blvckbytes.aoc_2023.data.FilteredSchematicLine
 import me.blvckbytes.aoc_2023.data.NumberAndIndex
 import me.blvckbytes.aoc_2023.data.SchematicLine
+import me.blvckbytes.aoc_2023.data.ScratchCard
 import kotlin.math.pow
 import kotlin.math.round
 
@@ -17,7 +18,9 @@ class AoC2023 {
 //      day2Puzzle1()
 //      day2Puzzle2()
 //      day3Puzzle1()
-      day3Puzzle2()
+//      day3Puzzle2()
+//      day4Puzzle1()
+      day4Puzzle2()
       val end = System.nanoTime()
 
       println("Took ${round((end - start) / 1000.0 / 1000.0 * 100) / 100}ms")
@@ -61,7 +64,7 @@ class AoC2023 {
               val spaceIndex = cubeColorEntry.indexOf(' ')
               val amount = cubeColorEntry.substring(0, spaceIndex).toInt()
 
-              val max = when(val color = cubeColorEntry.substring(spaceIndex + 1)) {
+              val max = when (val color = cubeColorEntry.substring(spaceIndex + 1)) {
                 "red" -> 12
                 "green" -> 13
                 "blue" -> 14
@@ -411,7 +414,7 @@ class AoC2023 {
 
         if (currentChar.isDigit()) {
           if (firstDigit == null)
-            firstDigit= currentChar
+            firstDigit = currentChar
 
           if (lastDigitIndex == null || lastDigitIndex < i)
             lastDigitIndex = i
@@ -423,5 +426,87 @@ class AoC2023 {
 
       return 10 * (firstDigit.code - '0'.code) + (input[lastDigitIndex].code - '0'.code)
     }
+
+    private fun day4Puzzle1() {
+      val cards = parseScratchCards("day4_1.txt")
+
+      val totalWorth = cards.sumOf {
+        if (it.matchingNumbers.isEmpty()) 0 else 2.0.pow(it.matchingNumbers.size - 1).toInt()
+      }
+
+      println("The total worth in points is $totalWorth")
+    }
+
+    private fun day4Puzzle2() {
+      val cards = parseScratchCards("day4_1.txt")
+
+      fun evaluateCard(card: ScratchCard, cardIndex: Int, totalCardCount: Int): Int {
+        val matchCount = card.matchingNumbers.size
+        var result = totalCardCount + matchCount
+
+        for (copyCardNumber in 1..matchCount) {
+          val copyCardIndex = cardIndex + copyCardNumber
+          val copyCard = cards[copyCardIndex]
+
+          result = evaluateCard(copyCard, copyCardIndex, result)
+        }
+
+        return result
+      }
+
+      var totalCardCount = 0
+
+      for (cardIndex in cards.indices) {
+        totalCardCount = evaluateCard(cards[cardIndex], cardIndex, totalCardCount)
+        ++totalCardCount // This original card
+      }
+
+      println("The total card count is: $totalCardCount")
+    }
+
+    private fun parseScratchCards(file: String): List<ScratchCard> {
+      return InputFile(file).use {
+        val cards = mutableListOf<ScratchCard>()
+
+        for (line in it) {
+          val colonIndex = line.indexOf(':')
+//          val cardId = line.substring("Card ".length, colonIndex).toInt()
+          val (winningNumbersString, ownNumbersString) = line.substring(colonIndex + 2).split(" | ")
+          val winningNumbers = parseSpaceSeparatedNumbers(winningNumbersString)
+          val ownNumbers = parseSpaceSeparatedNumbers(ownNumbersString)
+
+          val matchingNumbers = winningNumbers.intersect(ownNumbers)
+          cards.add(ScratchCard(winningNumbers, ownNumbers, matchingNumbers))
+        }
+
+        cards
+      }
+    }
+
+    private fun parseSpaceSeparatedNumbers(input: String): Set<Int> {
+      val result = mutableSetOf<Int>()
+      val numberBuilder = StringBuilder()
+      val inputLength = input.length
+
+      for (charIndex in 0 until inputLength) {
+        val char = input[charIndex]
+        val isDigit = char.isDigit()
+
+        if (isDigit)
+          numberBuilder.append(char)
+
+        if (!isDigit || charIndex == inputLength - 1) {
+          if (numberBuilder.isEmpty())
+            continue
+
+          result.add(numberBuilder.toString().toInt())
+          numberBuilder.clear()
+          continue
+        }
+      }
+
+      return result
+    }
+
   }
 }
