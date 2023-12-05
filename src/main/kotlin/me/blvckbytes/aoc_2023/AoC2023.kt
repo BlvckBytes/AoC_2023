@@ -1,9 +1,6 @@
 package me.blvckbytes.aoc_2023
 
-import me.blvckbytes.aoc_2023.data.FilteredSchematicLine
-import me.blvckbytes.aoc_2023.data.NumberAndIndex
-import me.blvckbytes.aoc_2023.data.SchematicLine
-import me.blvckbytes.aoc_2023.data.ScratchCard
+import me.blvckbytes.aoc_2023.data.*
 import kotlin.math.pow
 import kotlin.math.round
 
@@ -483,8 +480,8 @@ class AoC2023 {
       }
     }
 
-    private fun parseSpaceSeparatedNumbers(input: String): Set<Int> {
-      val result = mutableSetOf<Int>()
+    private fun parseSpaceSeparatedNumbers(input: String): Set<Long> {
+      val result = mutableSetOf<Long>()
       val numberBuilder = StringBuilder()
       val inputLength = input.length
 
@@ -499,7 +496,7 @@ class AoC2023 {
           if (numberBuilder.isEmpty())
             continue
 
-          result.add(numberBuilder.toString().toInt())
+          result.add(numberBuilder.toString().toLong())
           numberBuilder.clear()
           continue
         }
