@@ -17,7 +17,9 @@ class AoC2023 {
 //      day3Puzzle1()
 //      day3Puzzle2()
 //      day4Puzzle1()
-      day4Puzzle2()
+//      day4Puzzle2()
+//      day5Puzzle1()
+      day5Puzzle2()
       val end = System.nanoTime()
 
       println("Took ${round((end - start) / 1000.0 / 1000.0 * 100) / 100}ms")
@@ -459,6 +461,125 @@ class AoC2023 {
       }
 
       println("The total card count is: $totalCardCount")
+    }
+
+    private fun day5Puzzle1() {
+      val almanac = parseAlmanac("day5_1.txt", false)
+
+      var lowestLocationNumber: Long? = null
+
+      for (seed in almanac.seeds()) {
+        val location = almanac.findLocationNumber(seed)
+
+        if (lowestLocationNumber == null || lowestLocationNumber > location)
+          lowestLocationNumber = location
+      }
+
+      println("The lowest location number is $lowestLocationNumber")
+    }
+
+    private fun day5Puzzle2() {
+      val almanac = parseAlmanac("day5_1.txt", true)
+
+      // NOTE: This took ~2.5 minutes in total, but I optimized on multiple sites
+      //       and think that this is the best I can do over all.
+
+      var lowestLocationNumber: Long? = null
+
+      for (seed in almanac.seeds()) {
+        val location = almanac.findLocationNumber(seed)
+
+        if (lowestLocationNumber == null || lowestLocationNumber > location)
+          lowestLocationNumber = location
+      }
+
+      println("The lowest location number is $lowestLocationNumber")
+    }
+
+    private fun parseAlmanac(file: String, interpretSeedLineAsRanges: Boolean): GardeningAlmanac {
+      return InputFile(file).use {
+
+        if (!it.hasNext())
+          throw IllegalStateException("Expected seeds line")
+
+        val seedsLine = it.next()
+        val seedLineNumbers = parseSpaceSeparatedNumbers(seedsLine.substring(seedsLine.indexOf(':') + 1)).toList()
+
+        val seeds: List<FirstLengthLongRange> = if (!interpretSeedLineAsRanges)
+          seedLineNumbers.map { number -> FirstLengthLongRange(number, 1) }
+        else {
+          if (seedLineNumbers.size % 2 != 0)
+            throw IllegalStateException("Expected seed numbers to come in pairs")
+
+          buildList {
+            for (numberIndex in seedLineNumbers.indices step 2) {
+              val firstNumber = seedLineNumbers[numberIndex]
+              val secondNumber = seedLineNumbers[numberIndex + 1]
+
+              add(FirstLengthLongRange(firstNumber, secondNumber))
+            }
+          }
+        }
+
+        val almanacMapFields = GardeningAlmanac::class.java.declaredFields
+          .mapNotNull { field ->
+            val annotation = field.getAnnotation(AlmanacMap::class.java) ?: return@mapNotNull null
+            Pair(annotation.name, field)
+          }
+
+        val almanacParameters = arrayOfNulls<Any>(almanacMapFields.size + 1)
+        almanacParameters[0] = seeds
+
+        var collectedRanges = mutableListOf<LongRangeMapping>()
+
+        lineIterator@ while (it.hasNext()) {
+          val currentLine = it.next()
+
+          if (currentLine.isBlank())
+            continue
+
+          for (almanacMapFieldIndex in almanacMapFields.indices) {
+            val almanacMapField = almanacMapFields[almanacMapFieldIndex]
+
+            if (currentLine.startsWith(almanacMapField.first)) {
+              collectedRanges = mutableListOf()
+              almanacParameters[almanacMapFieldIndex + 1] = LongMultiRangeMap(collectedRanges)
+              continue@lineIterator
+            }
+          }
+
+          val rangeMappingNumbers = parseSpaceSeparatedNumbers(currentLine).toList()
+
+          if (rangeMappingNumbers.size != 3)
+            throw IllegalStateException("Expected three numbers per range mapping")
+
+          val destinationRangeStart = rangeMappingNumbers[0]
+          val sourceRangeStart = rangeMappingNumbers[1]
+          val rangeLength = rangeMappingNumbers[2]
+
+          collectedRanges.add(LongRangeMapping(destinationRangeStart, sourceRangeStart, rangeLength))
+        }
+
+        val constructor = GardeningAlmanac::class.java.declaredConstructors
+          .filter { constructor ->
+            if (constructor.parameterCount != almanacMapFields.size + 1)
+              return@filter false
+
+            if (constructor.parameterTypes[0] != List::class.java)
+              return@filter false
+
+            for (i in almanacMapFields.indices) {
+              if (constructor.parameterTypes[i + 1] != LongMultiRangeMap::class.java)
+                return@filter false
+            }
+
+            return@filter true
+          }
+          .firstOrNull()
+          ?: throw IllegalStateException("Could not find target constructor (List, Map...)")
+
+        constructor.newInstance(*almanacParameters) as GardeningAlmanac
+      }
     }
 
     private fun parseScratchCards(file: String): List<ScratchCard> {
