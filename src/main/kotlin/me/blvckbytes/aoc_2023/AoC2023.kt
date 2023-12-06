@@ -9,20 +9,26 @@ class AoC2023 {
   companion object {
     @JvmStatic
     fun main(args: Array<String>) {
+      timeExecution("main() took") {
+//        day1Puzzle1()
+//        day1Puzzle2()
+//        day2Puzzle1()
+//        day2Puzzle2()
+//        day3Puzzle1()
+//        day3Puzzle2()
+//        day4Puzzle1()
+//        day4Puzzle2()
+//        day5Puzzle1()
+        day5Puzzle2()
+      }
+    }
+
+    private inline fun timeExecution(prefix: String, executor: () -> Unit) {
       val start = System.nanoTime()
-//      day1Puzzle1()
-//      day1Puzzle2()
-//      day2Puzzle1()
-//      day2Puzzle2()
-//      day3Puzzle1()
-//      day3Puzzle2()
-//      day4Puzzle1()
-//      day4Puzzle2()
-//      day5Puzzle1()
-      day5Puzzle2()
+      executor()
       val end = System.nanoTime()
 
-      println("Took ${round((end - start) / 1000.0 / 1000.0 * 100) / 100}ms")
+      println("$prefix ${round((end - start) / 1000.0 / 1000.0 * 100) / 100}ms")
     }
 
     private fun day1Puzzle1() {
@@ -468,8 +474,11 @@ class AoC2023 {
 
       var lowestLocationNumber: Long? = null
 
-      for (seed in almanac.seeds()) {
-        val location = almanac.findLocationNumber(seed)
+      for (seed in almanac.seedRanges) {
+        if (seed.first != seed.last)
+          throw IllegalStateException("Expected only single seeds, not ranges")
+
+        val location = almanac.findLocationNumber(seed.first)
 
         if (lowestLocationNumber == null || lowestLocationNumber > location)
           lowestLocationNumber = location
@@ -481,16 +490,13 @@ class AoC2023 {
     private fun day5Puzzle2() {
       val almanac = parseAlmanac("day5_1.txt", true)
 
-      // NOTE: This took ~2.5 minutes in total, but I optimized on multiple sites
-      //       and think that this is the best I can do over all.
-
       var lowestLocationNumber: Long? = null
 
-      for (seed in almanac.seeds()) {
-        val location = almanac.findLocationNumber(seed)
-
-        if (lowestLocationNumber == null || lowestLocationNumber > location)
-          lowestLocationNumber = location
+      timeExecution("Location computation took") {
+        for (location in almanac.mapSeedsToLocations()) {
+          if (lowestLocationNumber == null || lowestLocationNumber!! > location.first)
+            lowestLocationNumber = location.first
+        }
       }
 
       println("The lowest location number is $lowestLocationNumber")
@@ -505,8 +511,8 @@ class AoC2023 {
         val seedsLine = it.next()
         val seedLineNumbers = parseSpaceSeparatedNumbers(seedsLine.substring(seedsLine.indexOf(':') + 1)).toList()
 
-        val seeds: List<FirstLengthLongRange> = if (!interpretSeedLineAsRanges)
-          seedLineNumbers.map { number -> FirstLengthLongRange(number, 1) }
+        val seeds: List<FirstLastLongRange> = if (!interpretSeedLineAsRanges)
+          seedLineNumbers.map { number -> FirstLastLongRange(number, number) }
         else {
           if (seedLineNumbers.size % 2 != 0)
             throw IllegalStateException("Expected seed numbers to come in pairs")
@@ -516,7 +522,7 @@ class AoC2023 {
               val firstNumber = seedLineNumbers[numberIndex]
               val secondNumber = seedLineNumbers[numberIndex + 1]
 
-              add(FirstLengthLongRange(firstNumber, secondNumber))
+              add(FirstLastLongRange(firstNumber, firstNumber + secondNumber - 1))
             }
           }
         }
@@ -557,7 +563,10 @@ class AoC2023 {
           val sourceRangeStart = rangeMappingNumbers[1]
           val rangeLength = rangeMappingNumbers[2]
 
-          collectedRanges.add(LongRangeMapping(destinationRangeStart, sourceRangeStart, rangeLength))
+          collectedRanges.add(LongRangeMapping(
+            sourceRangeStart, sourceRangeStart + rangeLength - 1,
+            - sourceRangeStart + destinationRangeStart
+          ))
         }
 
         val constructor = GardeningAlmanac::class.java.declaredConstructors

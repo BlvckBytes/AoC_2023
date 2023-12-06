@@ -1,7 +1,7 @@
 package me.blvckbytes.aoc_2023.data
 
 class GardeningAlmanac(
-  private val seedRanges: List<FirstLengthLongRange>,
+  val seedRanges: List<FirstLastLongRange>,
   @field:AlmanacMap("seed-to-soil")
   val seedToSoil: LongMultiRangeMap,
   @field:AlmanacMap("soil-to-fertilizer")
@@ -18,8 +18,14 @@ class GardeningAlmanac(
   val humidityToLocation: LongMultiRangeMap,
 ) {
 
-  fun seeds(): Iterator<Long> {
-    return LongRangesIterator(seedRanges)
+  fun mapSeedsToLocations(): Set<FirstLastLongRange> {
+    val soilRanges = seedToSoil.mapRanges(seedRanges)
+    val fertilizerRanges = soilToFertilizer.mapRanges(soilRanges)
+    val waterRanges = fertilizerToWater.mapRanges(fertilizerRanges)
+    val lightRanges = waterToLight.mapRanges(waterRanges)
+    val temperatureRanges = lightToTemperature.mapRanges(lightRanges)
+    val humidityRanges = temperatureToHumidity.mapRanges(temperatureRanges)
+    return humidityToLocation.mapRanges(humidityRanges)
   }
 
   fun findLocationNumber(seed: Long): Long {
