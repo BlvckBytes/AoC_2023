@@ -19,7 +19,9 @@ class AoC2023 {
 //        day4Puzzle1()
 //        day4Puzzle2()
 //        day5Puzzle1()
-        day5Puzzle2()
+//        day5Puzzle2()
+//        day6Puzzle1()
+        day6Puzzle2()
       }
     }
 
@@ -502,6 +504,79 @@ class AoC2023 {
       println("The lowest location number is $lowestLocationNumber")
     }
 
+    private fun day6Puzzle1() {
+      val data = parseBoatRaceData("day6_1.txt", false)
+
+      var result = 0L
+
+      for (entry in data) {
+        val numberOfWays = entry.countNumberOfWaysToWin(entry)
+
+        if (result == 0L) {
+          result = numberOfWays
+          continue
+        }
+
+        result *= numberOfWays
+      }
+
+      println("The result is $result")
+    }
+
+    private fun day6Puzzle2() {
+      val data = parseBoatRaceData("day6_1.txt", true)
+
+      var result = 0L
+
+      for (entry in data) {
+        val numberOfWays = entry.countNumberOfWaysToWin(entry)
+
+        if (result == 0L) {
+          result = numberOfWays
+          continue
+        }
+
+        result *= numberOfWays
+      }
+
+      println("The result is $result")
+    }
+
+    private fun parseBoatRaceData(file: String, ignoreSpaces: Boolean): List<BoatRaceEntry> {
+      return InputFile(file).use {
+        val result = mutableListOf<BoatRaceEntry>()
+
+        if (!it.hasNext())
+          throw IllegalStateException("Expected there to be a time line")
+
+        var timeData = it.next()
+
+        if (!it.hasNext())
+          throw IllegalStateException("Expected there to be a distance line")
+
+        var distanceData = it.next()
+
+        if (ignoreSpaces) {
+          timeData = timeData.replace(" ", "")
+          distanceData = distanceData.replace(" ", "")
+        }
+
+        val timeValues = parseSpaceSeparatedNumbers(timeData.substring(timeData.indexOf(':') + 1))
+        val distanceValues = parseSpaceSeparatedNumbers(distanceData.substring(timeData.indexOf(':') + 1))
+
+        for (index in timeValues.indices)
+          result.add(BoatRaceEntry(timeValues[index], distanceValues[index]))
+
+        if (timeValues.size != distanceValues.size)
+          throw IllegalStateException("Expected there to be as many time values as distance values")
+
+        if (it.hasNext())
+          throw IllegalStateException("Unexpected next line: ${it.next()}")
+
+        result
+      }
+    }
+
     private fun parseAlmanac(file: String, interpretSeedLineAsRanges: Boolean): GardeningAlmanac {
       return InputFile(file).use {
 
@@ -599,8 +674,8 @@ class AoC2023 {
           val colonIndex = line.indexOf(':')
 //          val cardId = line.substring("Card ".length, colonIndex).toInt()
           val (winningNumbersString, ownNumbersString) = line.substring(colonIndex + 2).split(" | ")
-          val winningNumbers = parseSpaceSeparatedNumbers(winningNumbersString)
-          val ownNumbers = parseSpaceSeparatedNumbers(ownNumbersString)
+          val winningNumbers = parseSpaceSeparatedNumbers(winningNumbersString).toHashSet()
+          val ownNumbers = parseSpaceSeparatedNumbers(ownNumbersString).toHashSet()
 
           val matchingNumbers = winningNumbers.intersect(ownNumbers)
           cards.add(ScratchCard(winningNumbers, ownNumbers, matchingNumbers))
@@ -610,8 +685,8 @@ class AoC2023 {
       }
     }
 
-    private fun parseSpaceSeparatedNumbers(input: String): Set<Long> {
-      val result = mutableSetOf<Long>()
+    private fun parseSpaceSeparatedNumbers(input: String): List<Long> {
+      val result = mutableListOf<Long>()
       val numberBuilder = StringBuilder()
       val inputLength = input.length
 
