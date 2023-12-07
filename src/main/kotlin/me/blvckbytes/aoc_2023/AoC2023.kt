@@ -21,7 +21,9 @@ class AoC2023 {
 //        day5Puzzle1()
 //        day5Puzzle2()
 //        day6Puzzle1()
-        day6Puzzle2()
+//        day6Puzzle2()
+//        day7Puzzle1()
+        day7Puzzle2()
       }
     }
 
@@ -540,6 +542,48 @@ class AoC2023 {
       }
 
       println("The result is $result")
+    }
+
+    private fun day7Puzzle1() {
+      val sortedHands = parseCamelCardHands("day7_1.txt", false).sorted()
+
+      var totalWinnings = 0L
+
+      for (handIndex in sortedHands.indices)
+        totalWinnings += (handIndex + 1) * sortedHands[handIndex].bidAmount
+
+      println("The total winnings are $totalWinnings")
+    }
+
+    private fun day7Puzzle2() {
+      val sortedHands = parseCamelCardHands("day7_1.txt", true).sorted()
+
+      var totalWinnings = 0L
+
+      for (handIndex in sortedHands.indices)
+        totalWinnings += (handIndex + 1) * sortedHands[handIndex].bidAmount
+
+      println("The total winnings are $totalWinnings")
+    }
+
+    private fun parseCamelCardHands(file: String, withJBeingJoker: Boolean): List<CamelCardsHand> {
+      return InputFile(file).use {
+        val result = mutableListOf<CamelCardsHand>()
+
+        for (line in it) {
+          val lineData = line.split(' ')
+
+          if (lineData.size != 2)
+            throw IllegalStateException("Expected two column input")
+
+          val cards = lineData[0].toCharArray().map { char -> CamelCard(char, withJBeingJoker) }
+          val bidAmount = lineData[1].toLong()
+
+          result.add(CamelCardsHand(cards, bidAmount, withJBeingJoker))
+        }
+
+        result
+      }
     }
 
     private fun parseBoatRaceData(file: String, ignoreSpaces: Boolean): List<BoatRaceEntry> {
