@@ -3,6 +3,7 @@ package me.blvckbytes.aoc_2023
 import me.blvckbytes.aoc_2023.data.*
 import kotlin.math.pow
 import kotlin.math.round
+import kotlin.math.sqrt
 
 class AoC2023 {
 
@@ -23,7 +24,9 @@ class AoC2023 {
 //        day6Puzzle1()
 //        day6Puzzle2()
 //        day7Puzzle1()
-        day7Puzzle2()
+//        day7Puzzle2()
+//        day8Puzzle1()
+        day8Puzzle2()
       }
     }
 
@@ -564,6 +567,153 @@ class AoC2023 {
         totalWinnings += (handIndex + 1) * sortedHands[handIndex].bidAmount
 
       println("The total winnings are $totalWinnings")
+    }
+
+    private fun day8Puzzle1() {
+      val network = parseNavigationNetwork("day8_1.txt")
+
+      val startNode = network.findNode("AAA")
+      val endNodes = network.findNodes { it == "ZZZ" }
+
+      val steps = walkUntilEnd(startNode, network, endNodes)
+
+      println("Took $steps steps")
+    }
+
+    private fun day8Puzzle2() {
+      val network = parseNavigationNetwork("day8_1.txt")
+
+      val endNodes = network.findNodes { it.endsWith('Z') }
+      val startNodes = network.findNodes { it.endsWith('A') }
+
+      if (startNodes.size != endNodes.size)
+        throw IllegalStateException("Expected there to be as many start- as end-nodes")
+
+      val pathLengths = IntArray(startNodes.size) { 0 }
+
+      for ((index, startNode) in startNodes.withIndex()) {
+        val steps = walkUntilEnd(startNode, network, endNodes)
+        pathLengths[index] = steps
+      }
+
+      if (endNodes.isNotEmpty())
+        throw IllegalStateException("Not all end nodes found a corresponding start")
+
+      val factorMaxFrequencies = mutableMapOf<Int, Int>()
+
+      for (pathLength in pathLengths) {
+        val factorFrequencies = mutableMapOf<Int, Int>()
+
+        for (primeFactor in primeFactorization(pathLength)) {
+          val existingFrequency = factorFrequencies.computeIfAbsent(primeFactor) { 0 }
+          factorFrequencies[primeFactor] = existingFrequency + 1
+        }
+
+        for (factorFrequencyEntry in factorFrequencies) {
+          val currentMaxFrequency = factorMaxFrequencies.computeIfAbsent(factorFrequencyEntry.key) { 0 }
+          if (factorFrequencyEntry.value > currentMaxFrequency)
+            factorMaxFrequencies[factorFrequencyEntry.key] = factorFrequencyEntry.value
+        }
+      }
+
+      val leastCommonMultiple = factorMaxFrequencies.entries.fold(0L) { accumulator, current ->
+        val currentValue = (current.key * current.value).toLong()
+
+        if (accumulator == 0L)
+          currentValue
+        else
+          accumulator * currentValue
+      }
+
+      println("The least common multiple of all path-length's prime factors is: $leastCommonMultiple")
+    }
+
+    private fun primeFactorization(number: Int): List<Int> {
+      var currentNumber = number
+      var divisorMax = sqrt(currentNumber.toDouble()).toInt()
+      var divisor = 2
+
+      val result = mutableListOf<Int>()
+
+      while (divisor <= divisorMax) {
+        if (number % divisor == 0) {
+          result.add(divisor)
+          currentNumber /= divisor
+          divisorMax = sqrt(currentNumber.toDouble()).toInt()
+          continue
+        }
+
+        ++divisor
+      }
+
+      if (currentNumber > 0)
+        result.add(currentNumber)
+
+      return result
+    }
+
+    private fun walkUntilEnd(
+      node: NavigationNode,
+      network: NavigationNetwork,
+      remainingEnds: MutableSet<NavigationNode>
+    ): Int {
+      var stepCounter = 0
+
+      if (remainingEnds.isEmpty())
+        throw IllegalStateException("No more end nodes available, would end in an infinite loop")
+
+      var currentNode = node
+      while (true) {
+        currentNode = network.findNode(currentNode.choose(network.nextDirection()))
+
+        ++stepCounter
+
+        if (remainingEnds.remove(currentNode))
+          break
+      }
+
+      return stepCounter
+    }
+
+    private fun parseNavigationNetwork(file: String): NavigationNetwork {
+      return InputFile(file).use {
+        if (!it.hasNext())
+          throw IllegalStateException("Expected L/R string line")
+
+        val directions = it.next().toCharArray().map { char ->
+          when (char) {
+            'L' -> NavigationDirection.LEFT
+            'R' -> NavigationDirection.RIGHT
+            else -> throw IllegalStateException("Unknown navigation direction: $char")
+          }
+        }
+
+        val nodes = mutableMapOf<String, NavigationNode>()
+
+        for (networkLine in it) {
+          // AAA = (BBB, BBB)
+          val equalsIndex = networkLine.indexOf('=')
+
+          if (equalsIndex < 0)
+            continue
+
+          val commaIndex = networkLine.indexOf(',')
+
+          if (commaIndex < 0)
+            continue
+
+          val key = networkLine.substring(0, equalsIndex - 1)
+          val leftName = networkLine.substring(equalsIndex + 3, commaIndex)
+          val rightName = networkLine.substring(commaIndex + 2, networkLine.length - 1)
+
+          if (nodes.containsKey(key))
+            throw IllegalStateException("Duplicate mapping for key $key encountered")
+
+          nodes[key] = NavigationNode(key, leftName, rightName)
+        }
+
+        NavigationNetwork(directions.toTypedArray(), nodes)
+      }
     }
 
     private fun parseCamelCardHands(file: String, withJBeingJoker: Boolean): List<CamelCardsHand> {
