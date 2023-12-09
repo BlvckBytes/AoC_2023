@@ -26,7 +26,9 @@ class AoC2023 {
 //        day7Puzzle1()
 //        day7Puzzle2()
 //        day8Puzzle1()
-        day8Puzzle2()
+//        day8Puzzle2()
+//        day9Puzzle1()
+        day9Puzzle2()
       }
     }
 
@@ -628,6 +630,80 @@ class AoC2023 {
       println("The least common multiple of all path-length's prime factors is: $leastCommonMultiple")
     }
 
+    private fun day9Puzzle1() {
+      val result = parseSensorValues("day9_1.txt").sumOf { list -> extrapolateNextElement(list, false) }
+      println("The sum of all extrapolated elements is $result")
+    }
+
+    private fun day9Puzzle2() {
+      val result = parseSensorValues("day9_1.txt").sumOf { list -> extrapolateNextElement(list, true) }
+      println("The sum of all extrapolated elements is $result")
+    }
+
+    private fun generateNextValues(values: List<Long>): Pair<List<Long>, Long?> {
+      var commonDelta: Long? = 0
+
+      val nextValues = buildList {
+        for (index in 1 until values.size) {
+          val delta = values[index] - values[index - 1]
+
+          if (index == 1)
+            commonDelta = delta
+          else if (commonDelta != delta)
+            commonDelta = null
+
+          add(delta)
+        }
+      }
+
+      return Pair(nextValues, commonDelta)
+    }
+
+    private fun extrapolateNextElement(values: List<Long>, previous: Boolean): Long {
+      val allRows = mutableListOf<List<Long>>()
+      allRows.add(values)
+
+      while (true) {
+        val size = allRows.size
+        val previousValues = if (size == 0) values else allRows[size - 1]
+        val (nextValues, commonDelta) = generateNextValues(previousValues)
+
+        allRows.add(nextValues)
+
+        var fromBelow = commonDelta ?: continue
+
+        // Skip self, iterate other rows backwards
+        for (rowIndex in allRows.size - 2 downTo 0) {
+          val fromAbove = (
+            if (previous)
+              allRows[rowIndex].first()
+            else
+              allRows[rowIndex].last()
+          )
+
+          val nextInAbove = (
+            if (previous)
+              fromAbove - fromBelow
+            else
+              fromBelow + fromAbove
+          )
+
+          fromBelow = nextInAbove
+        }
+
+        return fromBelow
+      }
+    }
+
+    private fun parseSensorValues(file: String): List<List<Long>> {
+      return InputFile(file).use {
+        buildList {
+          for (line in it)
+            add(parseSpaceSeparatedNumbers(line))
+        }
+      }
+    }
+
     private fun primeFactorization(number: Int): List<Int> {
       var currentNumber = number
       var divisorMax = sqrt(currentNumber.toDouble()).toInt()
@@ -886,7 +962,7 @@ class AoC2023 {
 
       for (charIndex in 0 until inputLength) {
         val char = input[charIndex]
-        val isDigit = char.isDigit()
+        val isDigit = char.isDigit() || char == '-'
 
         if (isDigit)
           numberBuilder.append(char)
