@@ -30,7 +30,9 @@ class AoC2023 {
 //        day9Puzzle1()
 //        day9Puzzle2()
 //        day10Puzzle1()
-        day10Puzzle2()
+//        day10Puzzle2()
+//        day11Puzzle1()
+        day11Puzzle2()
       }
     }
 
@@ -673,6 +675,74 @@ class AoC2023 {
 
       // 152 is too low
       println("There are ${enclosedTiles.size} enclosed tiles within a loop of size ${mainLoop.size}")
+    }
+
+    private fun day11Puzzle1() {
+      val image = parseObservatoryImage("day11_1.txt")
+      println(image)
+
+      val expandedImage = image.expandImage(1)
+      println(expandedImage)
+
+      val pairDistances = ObservatoryImage.calculatePairDistances(expandedImage.galaxies)
+      var totalDistanceSum = 0L
+
+      for (pairDistance in pairDistances)
+        totalDistanceSum += pairDistance
+
+      println("The total distance sum is $totalDistanceSum")
+    }
+
+    private fun day11Puzzle2() {
+      val image = parseObservatoryImage("day11_1.txt")
+      val pairDistances = ObservatoryImage.calculatePairDistances(image.expandGalaxies(1_000_000 - 1))
+
+      var totalDistanceSum = 0L
+
+      for (pairDistance in pairDistances)
+        totalDistanceSum += pairDistance
+
+      println("The total distance sum is $totalDistanceSum")
+    }
+
+    private fun parseObservatoryImage(file: String): ObservatoryImage {
+      return InputFile(file).use {
+        var rowIndex = 0
+        var columnSize: Int? = null
+
+        val galaxies = buildList {
+
+          for (line in it) {
+            var columnIndex = 0
+
+            for (char in line) {
+              if (char == '#')
+                add(Galaxy(rowIndex, columnIndex))
+
+              else if (char != '.')
+                throw IllegalStateException("Unexpected character: $char")
+
+              ++columnIndex
+            }
+
+            if (columnSize == null)
+              columnSize = columnIndex
+            else {
+              if (columnSize != columnIndex)
+                throw IllegalStateException("Expected all rows to be of equal length")
+            }
+
+            ++rowIndex
+          }
+        }
+
+        ObservatoryImage(
+          galaxies,
+          columnSize
+            ?: throw IllegalStateException("Encountered empty file"),
+          rowIndex
+        )
+      }
     }
 
     private fun parsePipeMap(file: String): PipeMap {
