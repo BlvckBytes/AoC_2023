@@ -28,7 +28,9 @@ class AoC2023 {
 //        day8Puzzle1()
 //        day8Puzzle2()
 //        day9Puzzle1()
-        day9Puzzle2()
+//        day9Puzzle2()
+//        day10Puzzle1()
+        day10Puzzle2()
       }
     }
 
@@ -638,6 +640,82 @@ class AoC2023 {
     private fun day9Puzzle2() {
       val result = parseSensorValues("day9_1.txt").sumOf { list -> extrapolateNextElement(list, true) }
       println("The sum of all extrapolated elements is $result")
+    }
+
+    private fun day10Puzzle1() {
+      val pipeMap = parsePipeMap("day10_1.txt")
+      val mainLoop = pipeMap.walkMainLoop()
+      val farthestPoint = (mainLoop.size + (2 - 1)) / 2
+
+      println("The farthest point in steps is: $farthestPoint")
+    }
+
+    private fun day10Puzzle2() {
+      val pipeMap = parsePipeMap("day10_2_example.txt")
+      val mainLoop = pipeMap.walkMainLoop()
+      val enclosedTiles = pipeMap.findEnclosedTiles(mainLoop)
+
+      println(pipeMap.toString { tile, result ->
+        // Loop, do not override
+        if (mainLoop.contains(tile))
+          return@toString false
+
+        // Inside
+        if (enclosedTiles.contains(tile)) {
+          result.append('I')
+          return@toString true
+        }
+
+        // Outside
+        result.append('O')
+        return@toString true
+      })
+
+      // 152 is too low
+      println("There are ${enclosedTiles.size} enclosed tiles within a loop of size ${mainLoop.size}")
+    }
+
+    private fun parsePipeMap(file: String): PipeMap {
+      return InputFile(file).use {
+        val tileLines = mutableListOf<Array<PipeMapTile>>()
+        var startingPosition: PipeMapTile? = null
+
+        for (line in it) {
+          if (line.isBlank() || line.startsWith('#'))
+            continue
+
+          val currentY = tileLines.size
+          var startInLine: PipeMapTile? = null
+
+          val lineTiles = line.toCharArray().mapIndexed { index, char ->
+            val type = PipeMapTileType.fromChar(char)
+            val tile = PipeMapTile(type, Position(index, currentY))
+
+            if (type == PipeMapTileType.START) {
+              if (startInLine != null)
+                throw IllegalStateException("Encountered two starting positions on the same line in file $file")
+
+              startInLine = tile
+            }
+
+            tile
+          }.toTypedArray()
+
+          if (startInLine != null) {
+            if (startingPosition != null)
+              throw IllegalStateException("Encountered another starting position in file $file")
+
+            startingPosition = startInLine
+          }
+
+          tileLines.add(lineTiles)
+        }
+
+        if (startingPosition == null)
+          throw IllegalStateException("Could not find the starting position in file $file")
+
+        PipeMap(tileLines.toTypedArray(), startingPosition)
+      }
     }
 
     private fun generateNextValues(values: List<Long>): Pair<List<Long>, Long?> {
